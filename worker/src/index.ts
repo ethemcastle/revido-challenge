@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { supabase } from "./supabase";
+import { SHARED_WORKSPACE_ID } from "./constants";
 
 const POLL_INTERVAL = 5000; // 5 seconds
 
@@ -7,6 +8,7 @@ async function processItems() {
   const { data: items, error } = await supabase
     .from("my_items")
     .select("*")
+    .eq("workspace_id", SHARED_WORKSPACE_ID)
     .eq("status", "pending")
     .limit(10);
 
