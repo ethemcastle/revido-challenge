@@ -30,7 +30,7 @@ async function processSnapshots() {
       let content: Record<string, unknown>;
 
       if (process.env.FIRECRAWL_API_KEY) {
-        const result = await firecrawl.scrapeUrl(url, { formats: ["markdown"] });
+        const result = await firecrawl.v1.scrapeUrl(url, { formats: ["markdown"] });
         if (!result.success) {
           throw new Error(result.error || "Firecrawl scrape failed");
         }
