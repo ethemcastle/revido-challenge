@@ -30,10 +30,10 @@ function SnapshotCard({ snapshot }: { snapshot: Snapshot }) {
       </div>
       {snapshot.status === "completed" && content && (
         <div className="mt-2 space-y-1">
-          {content.title && (
+          {Boolean(content.title) && (
             <p className="text-xs font-medium truncate">{String(content.title)}</p>
           )}
-          {content.description && (
+          {Boolean(content.description) && (
             <p className="text-xs text-zinc-500 truncate">{String(content.description)}</p>
           )}
           <p className="text-[10px] text-zinc-400">
