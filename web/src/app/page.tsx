@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import SignOut from "./sign-out";
+import Link from "next/link";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -19,6 +20,12 @@ export default async function Home() {
         <p className="text-zinc-600 dark:text-zinc-400">
           Signed in as {user.email}
         </p>
+        <Link
+          href="/competitors"
+          className="rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium"
+        >
+          Manage Competitors
+        </Link>
         <SignOut />
       </div>
     </div>
