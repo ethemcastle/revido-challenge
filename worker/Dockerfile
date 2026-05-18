@@ -1,14 +1,13 @@
 FROM node:22-alpine
 WORKDIR /app
 
-COPY worker/package.json ./
+COPY package.json ./
 RUN npm install
 
-COPY worker/tsconfig.json ./
-COPY worker/src ./src
-COPY worker/migrations ./migrations
+COPY tsconfig.json ./
+COPY src ./src
+COPY migrations ./migrations
 
 RUN npm run build
 
 CMD ["sh", "-c", "node dist/migrate.js && node dist/index.js"]
-
