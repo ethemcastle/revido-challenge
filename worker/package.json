@@ -9,6 +9,7 @@
     "migrate": "node dist/migrate.js"
   },
   "dependencies": {
+    "@mendable/firecrawl-js": "^4.24.1",
     "@supabase/supabase-js": "^2.49.1",
     "dotenv": "^17.4.2",
     "pg": "^8.13.1"

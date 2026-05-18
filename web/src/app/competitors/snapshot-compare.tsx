@@ -38,11 +38,14 @@ export default function SnapshotCompare({ competitorId }: { competitorId: string
   const toMarkdown = (snapshot: Snapshot | null): string => {
     if (!snapshot?.content) return "";
     const c = snapshot.content as Record<string, unknown>;
+    // Use Firecrawl markdown if available
+    if (c.markdown) return c.markdown as string;
+    // Fallback: construct from metadata
     const lines: string[] = [];
     if (c.title) lines.push(`# ${c.title}`, "");
     if (c.description) lines.push(c.description as string, "");
     lines.push(`- **Status:** ${c.status_code}`);
-    lines.push(`- **Size:** ${((c.content_length as number) / 1024).toFixed(1)} KB`);
+    if (c.content_length) lines.push(`- **Size:** ${((c.content_length as number) / 1024).toFixed(1)} KB`);
     lines.push(`- **Fetched:** ${c.fetched_at}`);
     return lines.join("\n");
   };

@@ -94,12 +94,13 @@ export async function updateCompetitor(id: string, formData: FormData) {
 }
 
 export async function triggerSnapshot(competitorId: string) {
-  const { supabase, error: authError } = await getAuthenticatedUser();
+  const { user, supabase, error: authError } = await getAuthenticatedUser();
   if (authError) return { error: authError };
 
   const { error } = await supabase.from("snapshots").insert({
     competitor_id: competitorId,
     status: "pending",
+    triggered_by: user!.id,
   });
 
   if (error) return { error: error.message };
