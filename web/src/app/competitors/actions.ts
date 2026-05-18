@@ -1,27 +1,18 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { getAuthenticatedUser } from "@/utils/auth";
 
 export async function addCompetitor(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Not authenticated" };
-  }
+  const { user, supabase, error: authError } = await getAuthenticatedUser();
+  if (authError) return { error: authError };
 
   const name = (formData.get("name") as string)?.trim();
   const homepage_url = (formData.get("homepage_url") as string)?.trim();
   const notes = (formData.get("notes") as string) || null;
 
-  if (!name) {
-    return { error: "Name is required" };
-  }
-
-  if (!homepage_url) {
-    return { error: "Homepage URL is required" };
-  }
+  if (!name) return { error: "Name is required" };
+  if (!homepage_url) return { error: "Homepage URL is required" };
 
   // Check name uniqueness
   const { data: existing } = await supabase
@@ -48,54 +39,36 @@ export async function addCompetitor(formData: FormData) {
     name,
     homepage_url,
     notes,
-    created_by_user_id: user.id,
+    created_by_user_id: user!.id,
   });
 
-  if (error) {
-    return { error: error.message };
-  }
+  if (error) return { error: error.message };
 
   revalidatePath("/competitors");
   return { success: true };
 }
 
 export async function deleteCompetitor(id: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Not authenticated" };
-  }
+  const { supabase, error: authError } = await getAuthenticatedUser();
+  if (authError) return { error: authError };
 
   const { error } = await supabase.from("competitors").delete().eq("id", id);
-
-  if (error) {
-    return { error: error.message };
-  }
+  if (error) return { error: error.message };
 
   revalidatePath("/competitors");
   return { success: true };
 }
 
 export async function updateCompetitor(id: string, formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Not authenticated" };
-  }
+  const { supabase, error: authError } = await getAuthenticatedUser();
+  if (authError) return { error: authError };
 
   const name = (formData.get("name") as string)?.trim();
   const homepage_url = (formData.get("homepage_url") as string)?.trim();
   const notes = (formData.get("notes") as string) || null;
 
-  if (!name) {
-    return { error: "Name is required" };
-  }
-
-  if (!homepage_url) {
-    return { error: "Homepage URL is required" };
-  }
+  if (!name) return { error: "Name is required" };
+  if (!homepage_url) return { error: "Homepage URL is required" };
 
   // Check name uniqueness (exclude self)
   const { data: existing } = await supabase
@@ -114,30 +87,21 @@ export async function updateCompetitor(id: string, formData: FormData) {
     .update({ name, homepage_url, notes })
     .eq("id", id);
 
-  if (error) {
-    return { error: error.message };
-  }
+  if (error) return { error: error.message };
 
   revalidatePath("/competitors");
   return { success: true };
 }
 
 export async function triggerSnapshot(competitorId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Not authenticated" };
-  }
+  const { supabase, error: authError } = await getAuthenticatedUser();
+  if (authError) return { error: authError };
 
   const { error } = await supabase.from("snapshots").insert({
     competitor_id: competitorId,
     status: "pending",
   });
 
-  if (error) {
-    return { error: error.message };
-  }
-
+  if (error) return { error: error.message };
   return { success: true };
 }

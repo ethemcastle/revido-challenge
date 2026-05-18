@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSnapshotNotes } from "@/hooks/use-snapshot-notes";
 import { createClient } from "@/utils/supabase/client";
+import { SHARED_WORKSPACE_ID } from "@/utils/constants";
 
 export default function SnapshotNotes({ snapshotId }: { snapshotId: string }) {
   const { notes, setNotes, loading } = useSnapshotNotes(snapshotId);
@@ -26,7 +27,7 @@ export default function SnapshotNotes({ snapshotId }: { snapshotId: string }) {
       snapshot_id: snapshotId,
       body: body.trim(),
       user_id: user.id,
-      workspace_id: "00000000-0000-0000-0000-000000000001",
+      workspace_id: SHARED_WORKSPACE_ID,
     });
 
     if (error) {

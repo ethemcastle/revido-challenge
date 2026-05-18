@@ -1,22 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { addCompetitor, deleteCompetitor, updateCompetitor, triggerSnapshot } from "./actions";
-import { createClient } from "@/utils/supabase/client";
-import Modal from "./modal";
+import { useCompetitorsRealtime } from "@/hooks/use-competitors-realtime";
+import { AddModal, EditModal, DeleteModal } from "./competitor-modals";
 import SnapshotsPanel from "./snapshots-panel";
 import SnapshotCompare from "./snapshot-compare";
-
-type Competitor = {
-  id: string;
-  name: string;
-  homepage_url: string;
-  notes: string | null;
-  created_at: string;
-};
+import type { Competitor } from "@/types";
 
 export default function CompetitorList({ competitors }: { competitors: Competitor[] }) {
-  const [items, setItems] = useState<Competitor[]>(competitors);
+  const items = useCompetitorsRealtime(competitors);
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<Competitor | null>(null);
   const [deleting, setDeleting] = useState<Competitor | null>(null);
@@ -24,41 +17,6 @@ export default function CompetitorList({ competitors }: { competitors: Competito
   const [expandedTab, setExpandedTab] = useState<"snapshots" | "compare">("snapshots");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-
-  // Sync server-rendered data
-  useEffect(() => {
-    setItems(competitors);
-  }, [competitors]);
-
-  // Realtime subscription
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel("competitors-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "competitors" },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            setItems((prev) => {
-              if (prev.some((c) => c.id === (payload.new as Competitor).id)) return prev;
-              return [payload.new as Competitor, ...prev];
-            });
-          } else if (payload.eventType === "UPDATE") {
-            setItems((prev) =>
-              prev.map((c) => (c.id === (payload.new as Competitor).id ? (payload.new as Competitor) : c))
-            );
-          } else if (payload.eventType === "DELETE") {
-            setItems((prev) => prev.filter((c) => c.id !== (payload.old as { id: string }).id));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
 
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -107,7 +65,7 @@ export default function CompetitorList({ competitors }: { competitors: Competito
         </div>
         <button
           onClick={() => { setShowAdd(true); setError(""); }}
-          className="px-4 py-2 text-sm font-medium rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm hover:opacity-90 transition-opacity"
+          className="cursor-pointer px-4 py-2 text-sm font-medium rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm hover:opacity-90 transition-opacity"
         >
           + Add Competitor
         </button>
@@ -119,7 +77,7 @@ export default function CompetitorList({ competitors }: { competitors: Competito
           <p className="text-zinc-400 text-sm">No competitors yet.</p>
           <button
             onClick={() => { setShowAdd(true); setError(""); }}
-            className="mt-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+            className="cursor-pointer mt-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
           >
             Add your first competitor →
           </button>
@@ -184,13 +142,13 @@ export default function CompetitorList({ competitors }: { competitors: Competito
                   <div className="flex gap-4 px-4 pt-3">
                     <button
                       onClick={() => setExpandedTab("snapshots")}
-                      className={`text-xs font-medium pb-2 border-b-2 transition-colors ${expandedTab === "snapshots" ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white" : "border-transparent text-zinc-400 hover:text-zinc-600"}`}
+                      className={`cursor-pointer text-xs font-medium pb-2 border-b-2 transition-colors ${expandedTab === "snapshots" ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white" : "border-transparent text-zinc-400 hover:text-zinc-600"}`}
                     >
                       Snapshots
                     </button>
                     <button
                       onClick={() => setExpandedTab("compare")}
-                      className={`text-xs font-medium pb-2 border-b-2 transition-colors ${expandedTab === "compare" ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white" : "border-transparent text-zinc-400 hover:text-zinc-600"}`}
+                      className={`cursor-pointer text-xs font-medium pb-2 border-b-2 transition-colors ${expandedTab === "compare" ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white" : "border-transparent text-zinc-400 hover:text-zinc-600"}`}
                     >
                       Compare
                     </button>
@@ -209,109 +167,10 @@ export default function CompetitorList({ competitors }: { competitors: Competito
         </div>
       )}
 
-      {/* Add Modal */}
-      {showAdd && (
-        <Modal open={true} onClose={() => setShowAdd(false)}>
-          <h2 className="text-lg font-semibold mb-4">Add Competitor</h2>
-          <form onSubmit={handleAdd} className="space-y-3">
-            <div>
-              <label className="text-xs font-medium text-zinc-500 mb-1 block">Name</label>
-              <input
-                name="name"
-                placeholder="e.g. Acme Corp"
-                required
-                className="w-full border rounded-lg px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-zinc-500 mb-1 block">Homepage URL</label>
-              <input
-                name="homepage_url"
-                type="url"
-                placeholder="https://example.com"
-                required
-                className="w-full border rounded-lg px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-zinc-500 mb-1 block">Notes (optional)</label>
-              <textarea
-                name="notes"
-                placeholder="Anything worth noting..."
-                rows={2}
-                className="w-full border rounded-lg px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10"
-              />
-            </div>
-            {error && <p className="text-xs text-red-600">{error}</p>}
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setShowAdd(false)} className="px-3 py-1.5 text-sm rounded-lg border dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">Cancel</button>
-              <button type="submit" disabled={pending} className="px-4 py-1.5 text-sm rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-medium disabled:opacity-50 shadow-sm">
-                {pending ? "Adding..." : "Add"}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
-
-      {/* Edit Modal */}
-      {editing && (
-        <Modal open={true} onClose={() => setEditing(null)}>
-          <h2 className="text-lg font-semibold mb-4">Edit Competitor</h2>
-          <form onSubmit={handleEdit} className="space-y-3">
-            <div>
-              <label className="text-xs font-medium text-zinc-500 mb-1 block">Name</label>
-              <input
-                name="name"
-                defaultValue={editing.name}
-                required
-                className="w-full border rounded-lg px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-zinc-500 mb-1 block">Homepage URL</label>
-              <input
-                name="homepage_url"
-                type="url"
-                defaultValue={editing.homepage_url}
-                required
-                className="w-full border rounded-lg px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-zinc-500 mb-1 block">Notes (optional)</label>
-              <textarea
-                name="notes"
-                defaultValue={editing.notes ?? ""}
-                rows={2}
-                className="w-full border rounded-lg px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10"
-              />
-            </div>
-            {error && <p className="text-xs text-red-600">{error}</p>}
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setEditing(null)} className="px-3 py-1.5 text-sm rounded-lg border dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">Cancel</button>
-              <button type="submit" disabled={pending} className="px-4 py-1.5 text-sm rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-medium disabled:opacity-50 shadow-sm">
-                {pending ? "Saving..." : "Save"}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
-
-      {/* Delete Modal */}
-      {deleting && (
-        <Modal open={true} onClose={() => setDeleting(null)}>
-          <h2 className="text-lg font-semibold mb-2">Remove Competitor</h2>
-          <p className="text-sm text-zinc-500 mb-5">
-            Remove <strong className="text-zinc-900 dark:text-zinc-100">{deleting.name}</strong>? This can't be undone.
-          </p>
-          <div className="flex justify-end gap-2">
-            <button onClick={() => setDeleting(null)} className="px-3 py-1.5 text-sm rounded-lg border dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">Cancel</button>
-            <button onClick={handleDelete} disabled={pending} className="px-4 py-1.5 text-sm rounded-lg bg-red-600 text-white font-medium disabled:opacity-50 shadow-sm">
-              {pending ? "Removing..." : "Remove"}
-            </button>
-          </div>
-        </Modal>
-      )}
+      {/* Modals */}
+      {showAdd && <AddModal onClose={() => setShowAdd(false)} onSubmit={handleAdd} pending={pending} error={error} />}
+      {editing && <EditModal competitor={editing} onClose={() => setEditing(null)} onSubmit={handleEdit} pending={pending} error={error} />}
+      {deleting && <DeleteModal competitor={deleting} onClose={() => setDeleting(null)} onConfirm={handleDelete} pending={pending} />}
     </>
   );
 }
