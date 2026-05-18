@@ -4,3 +4,4 @@ dockerfilePath = "web/Dockerfile"
 
 [deploy]
 startCommand = "node server.js"
+

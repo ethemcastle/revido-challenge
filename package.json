@@ -6,6 +6,8 @@
     "dev:web": "npm --workspace web run dev",
     "dev:worker": "npm --workspace worker run dev",
     "build:web": "npm --workspace web run build",
-    "build:worker": "npm --workspace worker run build"
+    "build:worker": "npm --workspace worker run build",
+    "start": "npm --workspace web run start",
+    "build": "npm --workspace web run build"
   }
 }
