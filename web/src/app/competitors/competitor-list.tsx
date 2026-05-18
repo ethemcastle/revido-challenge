@@ -131,24 +131,21 @@ export default function CompetitorList({ competitors }: { competitors: Competito
               key={c.id}
               className="group rounded-xl border border-zinc-100 dark:border-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700 hover:shadow-sm transition-all bg-white dark:bg-zinc-900/50 overflow-hidden"
             >
-              <div className="flex items-center gap-4 p-4">
+              <div
+                className="flex items-center gap-4 p-4 cursor-pointer"
+                onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
+              >
                 {/* Avatar / Icon */}
                 <div className="shrink-0 w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-sm font-bold text-zinc-500 uppercase">
                   {c.name.charAt(0)}
                 </div>
 
                 {/* Info */}
-                <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}>
+                <div className="min-w-0 flex-1">
                   <p className="font-semibold text-sm">{c.name}</p>
-                  <a
-                    href={c.homepage_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-xs text-zinc-400 hover:text-blue-500 transition-colors truncate block"
-                  >
+                  <span className="text-xs text-zinc-400 truncate block">
                     {c.homepage_url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
-                  </a>
+                  </span>
                 </div>
 
                 {/* Notes badge */}
@@ -159,22 +156,22 @@ export default function CompetitorList({ competitors }: { competitors: Competito
                 )}
 
                 {/* Actions */}
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={async () => { await triggerSnapshot(c.id); setExpandedId(c.id); }}
-                    className="px-2.5 py-1.5 text-xs rounded-md text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30 transition-colors font-medium"
+                    className="cursor-pointer px-2.5 py-1.5 text-xs rounded-md text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30 transition-colors font-medium"
                   >
                     Scan
                   </button>
                   <button
                     onClick={() => { setEditing(c); setError(""); }}
-                    className="px-2.5 py-1.5 text-xs rounded-md text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
+                    className="cursor-pointer px-2.5 py-1.5 text-xs rounded-md text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => setDeleting(c)}
-                    className="px-2.5 py-1.5 text-xs rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                    className="cursor-pointer px-2.5 py-1.5 text-xs rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                   >
                     Remove
                   </button>
@@ -183,7 +180,7 @@ export default function CompetitorList({ competitors }: { competitors: Competito
 
               {/* Expandable panel */}
               {expandedId === c.id && (
-                <div className="border-t dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/30">
+                <div className="border-t dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/30" onClick={(e) => e.stopPropagation()}>
                   <div className="flex gap-4 px-4 pt-3">
                     <button
                       onClick={() => setExpandedTab("snapshots")}
