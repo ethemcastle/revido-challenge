@@ -65,7 +65,7 @@ export default function SnapshotCompare({ competitorId }: { competitorId: string
             <option value="">Select snapshot...</option>
             {completed.map((s) => (
               <option key={s.id} value={s.id} disabled={s.id === selectedB}>
-                {formatDate(s)} — {(s.content as Record<string, unknown>)?.title || "Untitled"}
+                {formatDate(s)} — {String((s.content as Record<string, unknown>)?.title || "Untitled")}
               </option>
             ))}
           </select>
@@ -80,7 +80,7 @@ export default function SnapshotCompare({ competitorId }: { competitorId: string
             <option value="">Select snapshot...</option>
             {completed.map((s) => (
               <option key={s.id} value={s.id} disabled={s.id === selectedA}>
-                {formatDate(s)} — {(s.content as Record<string, unknown>)?.title || "Untitled"}
+                {formatDate(s)} — {String((s.content as Record<string, unknown>)?.title || "Untitled")}
               </option>
             ))}
           </select>
