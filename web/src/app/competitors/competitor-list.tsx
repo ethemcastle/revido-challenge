@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { addCompetitor, deleteCompetitor, updateCompetitor } from "./actions";
+import { createClient } from "@/utils/supabase/client";
 import Modal from "./modal";
 
 type Competitor = {
@@ -13,11 +14,44 @@ type Competitor = {
 };
 
 export default function CompetitorList({ competitors }: { competitors: Competitor[] }) {
+  const [items, setItems] = useState<Competitor[]>(competitors);
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<Competitor | null>(null);
   const [deleting, setDeleting] = useState<Competitor | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+
+  // Sync server-rendered data
+  useEffect(() => {
+    setItems(competitors);
+  }, [competitors]);
+
+  // Realtime subscription
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel("competitors-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "competitors" },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setItems((prev) => [payload.new as Competitor, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            setItems((prev) =>
+              prev.map((c) => (c.id === (payload.new as Competitor).id ? (payload.new as Competitor) : c))
+            );
+          } else if (payload.eventType === "DELETE") {
+            setItems((prev) => prev.filter((c) => c.id !== (payload.old as { id: string }).id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -62,7 +96,7 @@ export default function CompetitorList({ competitors }: { competitors: Competito
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Competitors</h1>
-          <p className="text-sm text-zinc-500 mt-1">{competitors.length} tracked</p>
+          <p className="text-sm text-zinc-500 mt-1">{items.length} tracked</p>
         </div>
         <button
           onClick={() => { setShowAdd(true); setError(""); }}
@@ -85,7 +119,7 @@ export default function CompetitorList({ competitors }: { competitors: Competito
         </div>
       ) : (
         <div className="space-y-2">
-          {competitors.map((c) => (
+          {items.map((c) => (
             <div
               key={c.id}
               className="group flex items-center gap-4 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700 hover:shadow-sm transition-all bg-white dark:bg-zinc-900/50"
