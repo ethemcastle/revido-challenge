@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/utils/supabase/client";
+import { signInWithEmail } from "./actions";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -13,17 +13,10 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
 
-    const supabase = createClient();
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${siteUrl}/auth/callback`,
-      },
-    });
+    const result = await signInWithEmail(email);
 
-    if (error) {
-      setMessage(error.message);
+    if (result.error) {
+      setMessage(result.error);
     } else {
       setMessage("Check your email for the magic link!");
     }
@@ -54,4 +47,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
