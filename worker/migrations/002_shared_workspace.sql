@@ -19,13 +19,15 @@ CREATE TABLE IF NOT EXISTS workspace_members (
   PRIMARY KEY (workspace_id, user_id)
 );
 
--- RLS: members can see their own workspace membership
+-- RLS
 ALTER TABLE workspaces ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workspace_members ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "All authenticated can view shared workspace" ON workspaces;
 CREATE POLICY "All authenticated can view shared workspace" ON workspaces
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Members can view memberships" ON workspace_members;
 CREATE POLICY "Members can view memberships" ON workspace_members
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -34,10 +36,13 @@ ALTER TABLE my_items ADD COLUMN IF NOT EXISTS workspace_id UUID
   REFERENCES workspaces(id) ON DELETE CASCADE
   DEFAULT '00000000-0000-0000-0000-000000000001';
 
--- Replace user-only RLS with workspace-based (but since all share one workspace, everyone sees everything)
+-- Replace user-only RLS with workspace-based
 DROP POLICY IF EXISTS "Users can select own" ON my_items;
 DROP POLICY IF EXISTS "Users can insert own" ON my_items;
 DROP POLICY IF EXISTS "Users can update own" ON my_items;
+DROP POLICY IF EXISTS "Workspace members can select" ON my_items;
+DROP POLICY IF EXISTS "Workspace members can insert" ON my_items;
+DROP POLICY IF EXISTS "Workspace members can update" ON my_items;
 
 CREATE POLICY "Workspace members can select" ON my_items
   FOR SELECT USING (
@@ -69,4 +74,3 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-

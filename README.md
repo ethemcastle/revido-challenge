@@ -51,3 +51,20 @@ npm run dev:worker
 cd worker
 npx tsx src/migrate.ts
 ```
+
+## Building for Production
+
+```bash
+# Build the web app
+npm run build:web
+
+# Build the worker
+npm run build:worker
+```
+
+## Deploying
+
+Both services are deployed to Railway via Dockerfiles. Each service needs its root directory set in Railway:
+
+- **Web service** → Root directory: `web/`
+- **Worker service** → Root directory: `worker/`
