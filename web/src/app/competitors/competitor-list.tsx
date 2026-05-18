@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { addCompetitor, deleteCompetitor, updateCompetitor } from "./actions";
+import { addCompetitor, deleteCompetitor, updateCompetitor, triggerSnapshot } from "./actions";
 import { createClient } from "@/utils/supabase/client";
 import Modal from "./modal";
+import SnapshotsPanel from "./snapshots-panel";
+import SnapshotCompare from "./snapshot-compare";
 
 type Competitor = {
   id: string;
@@ -18,6 +20,8 @@ export default function CompetitorList({ competitors }: { competitors: Competito
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<Competitor | null>(null);
   const [deleting, setDeleting] = useState<Competitor | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedTab, setExpandedTab] = useState<"snapshots" | "compare">("snapshots");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
@@ -36,7 +40,10 @@ export default function CompetitorList({ competitors }: { competitors: Competito
         { event: "*", schema: "public", table: "competitors" },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            setItems((prev) => [payload.new as Competitor, ...prev]);
+            setItems((prev) => {
+              if (prev.some((c) => c.id === (payload.new as Competitor).id)) return prev;
+              return [payload.new as Competitor, ...prev];
+            });
           } else if (payload.eventType === "UPDATE") {
             setItems((prev) =>
               prev.map((c) => (c.id === (payload.new as Competitor).id ? (payload.new as Competitor) : c))
@@ -107,7 +114,7 @@ export default function CompetitorList({ competitors }: { competitors: Competito
       </div>
 
       {/* List */}
-      {competitors.length === 0 ? (
+      {items.length === 0 ? (
         <div className="text-center py-20 border border-dashed rounded-xl dark:border-zinc-700">
           <p className="text-zinc-400 text-sm">No competitors yet.</p>
           <button
@@ -122,48 +129,84 @@ export default function CompetitorList({ competitors }: { competitors: Competito
           {items.map((c) => (
             <div
               key={c.id}
-              className="group flex items-center gap-4 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700 hover:shadow-sm transition-all bg-white dark:bg-zinc-900/50"
+              className="group rounded-xl border border-zinc-100 dark:border-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700 hover:shadow-sm transition-all bg-white dark:bg-zinc-900/50 overflow-hidden"
             >
-              {/* Avatar / Icon */}
-              <div className="shrink-0 w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-sm font-bold text-zinc-500 uppercase">
-                {c.name.charAt(0)}
+              <div className="flex items-center gap-4 p-4">
+                {/* Avatar / Icon */}
+                <div className="shrink-0 w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-sm font-bold text-zinc-500 uppercase">
+                  {c.name.charAt(0)}
+                </div>
+
+                {/* Info */}
+                <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}>
+                  <p className="font-semibold text-sm">{c.name}</p>
+                  <a
+                    href={c.homepage_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs text-zinc-400 hover:text-blue-500 transition-colors truncate block"
+                  >
+                    {c.homepage_url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                  </a>
+                </div>
+
+                {/* Notes badge */}
+                {c.notes && (
+                  <span className="hidden sm:inline-block max-w-[140px] truncate text-xs text-zinc-400 bg-zinc-50 dark:bg-zinc-800 px-2 py-1 rounded-md">
+                    {c.notes}
+                  </span>
+                )}
+
+                {/* Actions */}
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={async () => { await triggerSnapshot(c.id); setExpandedId(c.id); }}
+                    className="px-2.5 py-1.5 text-xs rounded-md text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30 transition-colors font-medium"
+                  >
+                    Scan
+                  </button>
+                  <button
+                    onClick={() => { setEditing(c); setError(""); }}
+                    className="px-2.5 py-1.5 text-xs rounded-md text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => setDeleting(c)}
+                    className="px-2.5 py-1.5 text-xs rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
 
-              {/* Info */}
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-sm">{c.name}</p>
-                <a
-                  href={c.homepage_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-zinc-400 hover:text-blue-500 transition-colors truncate block"
-                >
-                  {c.homepage_url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
-                </a>
-              </div>
-
-              {/* Notes badge */}
-              {c.notes && (
-                <span className="hidden sm:inline-block max-w-[140px] truncate text-xs text-zinc-400 bg-zinc-50 dark:bg-zinc-800 px-2 py-1 rounded-md">
-                  {c.notes}
-                </span>
+              {/* Expandable panel */}
+              {expandedId === c.id && (
+                <div className="border-t dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/30">
+                  <div className="flex gap-4 px-4 pt-3">
+                    <button
+                      onClick={() => setExpandedTab("snapshots")}
+                      className={`text-xs font-medium pb-2 border-b-2 transition-colors ${expandedTab === "snapshots" ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white" : "border-transparent text-zinc-400 hover:text-zinc-600"}`}
+                    >
+                      Snapshots
+                    </button>
+                    <button
+                      onClick={() => setExpandedTab("compare")}
+                      className={`text-xs font-medium pb-2 border-b-2 transition-colors ${expandedTab === "compare" ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white" : "border-transparent text-zinc-400 hover:text-zinc-600"}`}
+                    >
+                      Compare
+                    </button>
+                  </div>
+                  <div className="px-4 py-3">
+                    {expandedTab === "snapshots" ? (
+                      <SnapshotsPanel competitorId={c.id} />
+                    ) : (
+                      <SnapshotCompare competitorId={c.id} />
+                    )}
+                  </div>
+                </div>
               )}
-
-              {/* Actions */}
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => { setEditing(c); setError(""); }}
-                  className="px-2.5 py-1.5 text-xs rounded-md text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => setDeleting(c)}
-                  className="px-2.5 py-1.5 text-xs rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                >
-                  Remove
-                </button>
-              </div>
             </div>
           ))}
         </div>

@@ -55,7 +55,10 @@ export function useSnapshots(competitorId?: string) {
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            setSnapshots((prev) => [payload.new as Snapshot, ...prev]);
+            setSnapshots((prev) => {
+              if (prev.some((s) => s.id === (payload.new as Snapshot).id)) return prev;
+              return [payload.new as Snapshot, ...prev];
+            });
           } else if (payload.eventType === "UPDATE") {
             setSnapshots((prev) =>
               prev.map((s) =>

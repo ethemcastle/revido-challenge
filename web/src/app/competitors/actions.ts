@@ -122,3 +122,22 @@ export async function updateCompetitor(id: string, formData: FormData) {
   return { success: true };
 }
 
+export async function triggerSnapshot(competitorId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const { error } = await supabase.from("snapshots").insert({
+    competitor_id: competitorId,
+    status: "pending",
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
