@@ -5,28 +5,49 @@ import { useSnapshotNotes } from "@/hooks/use-snapshot-notes";
 import { createClient } from "@/utils/supabase/client";
 
 export default function SnapshotNotes({ snapshotId }: { snapshotId: string }) {
-  const { notes, loading } = useSnapshotNotes(snapshotId);
+  const { notes, setNotes, loading } = useSnapshotNotes(snapshotId);
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!body.trim()) return;
     setSubmitting(true);
 
     const supabase = createClient();
-    await supabase.from("snapshot_notes").insert({
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("Not authenticated");
+      setSubmitting(false);
+      return;
+    }
+    const { error } = await supabase.from("snapshot_notes").insert({
       snapshot_id: snapshotId,
       body: body.trim(),
+      user_id: user.id,
+      workspace_id: "00000000-0000-0000-0000-000000000001",
     });
 
-    setBody("");
+    if (error) {
+      console.error("Failed to save note:", error.message);
+      alert("Failed to save note: " + error.message);
+    } else {
+      setBody("");
+    }
     setSubmitting(false);
   };
 
-  const handleDelete = async (noteId: string) => {
+  const handleDelete = async (noteId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    // Optimistic removal
+    setNotes((prev) => prev.filter((n) => n.id !== noteId));
     const supabase = createClient();
-    await supabase.from("snapshot_notes").delete().eq("id", noteId);
+    const { error } = await supabase.from("snapshot_notes").delete().eq("id", noteId);
+    if (error) {
+      console.error("Failed to delete note:", error.message);
+    }
   };
 
   if (loading) {
@@ -34,7 +55,7 @@ export default function SnapshotNotes({ snapshotId }: { snapshotId: string }) {
   }
 
   return (
-    <div className="mt-2 space-y-2">
+    <div className="mt-2 space-y-2" onClick={(e) => e.stopPropagation()}>
       {notes.length > 0 && (
         <div className="space-y-1.5">
           {notes.map((note) => (
@@ -48,8 +69,8 @@ export default function SnapshotNotes({ snapshotId }: { snapshotId: string }) {
                   {new Date(note.created_at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
                 </span>
                 <button
-                  onClick={() => handleDelete(note.id)}
-                  className="text-[10px] text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-600"
+                  onClick={(e) => handleDelete(note.id, e)}
+                  className="text-[10px] text-red-400 hover:text-red-600 cursor-pointer px-1"
                 >
                   ✕
                 </button>

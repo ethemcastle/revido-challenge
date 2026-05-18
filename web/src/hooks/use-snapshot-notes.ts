@@ -58,6 +58,6 @@ export function useSnapshotNotes(snapshotId: string) {
     };
   }, [snapshotId]);
 
-  return { notes, loading };
+  return { notes, setNotes, loading };
 }
 
