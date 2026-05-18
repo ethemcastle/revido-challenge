@@ -76,3 +76,49 @@ export async function deleteCompetitor(id: string) {
   revalidatePath("/competitors");
   return { success: true };
 }
+
+export async function updateCompetitor(id: string, formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const name = (formData.get("name") as string)?.trim();
+  const homepage_url = (formData.get("homepage_url") as string)?.trim();
+  const notes = (formData.get("notes") as string) || null;
+
+  if (!name) {
+    return { error: "Name is required" };
+  }
+
+  if (!homepage_url) {
+    return { error: "Homepage URL is required" };
+  }
+
+  // Check name uniqueness (exclude self)
+  const { data: existing } = await supabase
+    .from("competitors")
+    .select("id")
+    .ilike("name", name)
+    .neq("id", id)
+    .limit(1);
+
+  if (existing && existing.length > 0) {
+    return { error: "A competitor with this name already exists" };
+  }
+
+  const { error } = await supabase
+    .from("competitors")
+    .update({ name, homepage_url, notes })
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/competitors");
+  return { success: true };
+}
+
