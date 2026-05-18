@@ -31,13 +31,13 @@ function SnapshotCard({ snapshot }: { snapshot: Snapshot }) {
       {snapshot.status === "completed" && content && (
         <div className="mt-2 space-y-1">
           {content.title && (
-            <p className="text-xs font-medium truncate">{content.title as string}</p>
+            <p className="text-xs font-medium truncate">{String(content.title)}</p>
           )}
           {content.description && (
-            <p className="text-xs text-zinc-500 truncate">{content.description as string}</p>
+            <p className="text-xs text-zinc-500 truncate">{String(content.description)}</p>
           )}
           <p className="text-[10px] text-zinc-400">
-            Status {content.status_code as number} · {((content.content_length as number) / 1024).toFixed(1)}KB
+            Status {String(content.status_code)} · {((content.content_length as number) / 1024).toFixed(1)}KB
           </p>
         </div>
       )}
